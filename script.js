@@ -80,8 +80,14 @@ class MultiplicationGame {
     generateQuestions() {
         this.questions = [];
         for (let i = 0; i < this.totalQuestions; i++) {
-            const num1 = Math.floor(Math.random() * 9) + 1; // 1-9
-            const num2 = Math.floor(Math.random() * 9) + 1; // 1-9
+            let num1, num2;
+            
+            // 1단 문제 제거: 둘 중 하나라도 1이면 다시 생성
+            do {
+                num1 = Math.floor(Math.random() * 9) + 1; // 1-9
+                num2 = Math.floor(Math.random() * 9) + 1; // 1-9
+            } while (num1 === 1 || num2 === 1);
+            
             const correctAnswer = num1 * num2;
             
             // 오답 선택지 생성
