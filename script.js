@@ -50,6 +50,24 @@ class MultiplicationGame {
         this.finalStars = document.getElementById('finalStars');
         this.accuracyRate = document.getElementById('accuracyRate');
         this.maxStreakDisplay = document.getElementById('maxStreak');
+        
+        // 사운드 요소들
+        this.applauseSound = document.getElementById('applauseSound');
+        this.streakSound = document.getElementById('streakSound');
+        this.wrongSound = document.getElementById('wrongSound');
+        
+        // 사운드 볼륨 설정
+        this.applauseSound.volume = 0.7;
+        this.streakSound.volume = 0.8;
+        this.wrongSound.volume = 0.5;
+        
+        // Web Audio API 컨텍스트 초기화
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (error) {
+            console.log('Web Audio API 지원되지 않음:', error);
+            this.audioContext = null;
+        }
     }
     
     setupEventListeners() {
@@ -94,6 +112,9 @@ class MultiplicationGame {
             return;
         }
         
+        // 오디오 컨텍스트 활성화 (사용자 인터랙션 필요)
+        this.resumeAudioContext();
+        
         // 게임 상태 초기화
         this.currentScore = 0;
         this.currentQuestion = 1;
@@ -112,6 +133,16 @@ class MultiplicationGame {
         
         // 첫 번째 문제 시작
         this.showQuestion();
+    }
+    
+    resumeAudioContext() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().then(() => {
+                console.log('오디오 컨텍스트 활성화됨');
+            }).catch(error => {
+                console.log('오디오 컨텍스트 활성화 실패:', error);
+            });
+        }
     }
     
     showQuestion() {
@@ -438,6 +469,7 @@ class MultiplicationGame {
     
     showPerfectEffect() {
         this.perfectEffect.classList.remove('hidden');
+        this.playApplauseSound();
         setTimeout(() => {
             this.perfectEffect.classList.add('hidden');
         }, 1500);
@@ -446,6 +478,7 @@ class MultiplicationGame {
     showStreakEffect() {
         this.streakText.textContent = `${this.consecutiveCorrect} 연속 PERFECT! 🔥`;
         this.streakEffect.classList.remove('hidden');
+        this.playStreakSound();
         setTimeout(() => {
             this.streakEffect.classList.add('hidden');
         }, 1500);
@@ -453,9 +486,157 @@ class MultiplicationGame {
     
     showWrongEffect() {
         this.wrongEffect.classList.remove('hidden');
+        this.playWrongSound();
         setTimeout(() => {
             this.wrongEffect.classList.add('hidden');
         }, 1500);
+    }
+    
+    // 사운드 재생 메서드들
+    playApplauseSound() {
+        // Web Audio API로 박수 소리 효과 생성
+        if (this.audioContext) {
+            this.createApplauseEffect();
+        } else {
+            // 폴백: HTML 오디오 사용
+            try {
+                this.applauseSound.currentTime = 0;
+                this.applauseSound.play().catch(error => {
+                    console.log('박수 소리 재생 실패:', error);
+                });
+            } catch (error) {
+                console.log('박수 소리 재생 오류:', error);
+            }
+        }
+    }
+    
+    playStreakSound() {
+        // Web Audio API로 연속 효과음 생성
+        if (this.audioContext) {
+            this.createStreakEffect();
+        } else {
+            // 폴백: HTML 오디오 사용
+            try {
+                this.streakSound.currentTime = 0;
+                this.streakSound.play().catch(error => {
+                    console.log('연속 효과음 재생 실패:', error);
+                });
+            } catch (error) {
+                console.log('연속 효과음 재생 오류:', error);
+            }
+        }
+    }
+    
+    playWrongSound() {
+        // Web Audio API로 오답 효과음 생성
+        if (this.audioContext) {
+            this.createWrongEffect();
+        } else {
+            // 폴백: HTML 오디오 사용
+            try {
+                this.wrongSound.currentTime = 0;
+                this.wrongSound.play().catch(error => {
+                    console.log('오답 효과음 재생 실패:', error);
+                });
+            } catch (error) {
+                console.log('오답 효과음 재생 오류:', error);
+            }
+        }
+    }
+    
+    // Web Audio API를 사용한 사운드 효과 생성
+    createApplauseEffect() {
+        if (!this.audioContext) return;
+        
+        try {
+            // 복수의 박수 소리를 시뮬레이션
+            const times = [0, 0.1, 0.25, 0.4, 0.6, 0.8];
+            
+            times.forEach((time, index) => {
+                setTimeout(() => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    const noiseBuffer = this.audioContext.createBuffer(1, 4410, 44100);
+                    const noiseSource = this.audioContext.createBufferSource();
+                    
+                    // 화이트 노이즈 생성 (박수 소리)
+                    const channelData = noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < channelData.length; i++) {
+                        channelData[i] = Math.random() * 2 - 1;
+                    }
+                    
+                    noiseSource.buffer = noiseBuffer;
+                    noiseSource.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    // 볼륨 엔벨로프
+                    gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.3, this.audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                    
+                    noiseSource.start(this.audioContext.currentTime);
+                    noiseSource.stop(this.audioContext.currentTime + 0.1);
+                }, time * 1000);
+            });
+        } catch (error) {
+            console.log('박수 효과음 생성 오류:', error);
+        }
+    }
+    
+    createStreakEffect() {
+        if (!this.audioContext) return;
+        
+        try {
+            // 상승하는 톤으로 연속 효과 표현
+            const frequencies = [440, 554, 659, 880]; // A, C#, E, A (한 옥타브 위)
+            
+            frequencies.forEach((freq, index) => {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                oscillator.type = 'triangle';
+                
+                const startTime = this.audioContext.currentTime + index * 0.1;
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+                
+                oscillator.start(startTime);
+                oscillator.stop(startTime + 0.3);
+            });
+        } catch (error) {
+            console.log('연속 효과음 생성 오류:', error);
+        }
+    }
+    
+    createWrongEffect() {
+        if (!this.audioContext) return;
+        
+        try {
+            // 하강하는 톤으로 오답 효과 표현
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, this.audioContext.currentTime + 0.5);
+            
+            gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, this.audioContext.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.5);
+        } catch (error) {
+            console.log('오답 효과음 생성 오류:', error);
+        }
     }
     
     nextQuestion() {
