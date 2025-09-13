@@ -14,6 +14,11 @@ class MultiplicationGame {
         this.questions = [];
         this.currentQuestionIndex = 0;
         
+        // 터치 드래그 상태 관리
+        this.isDragging = false;
+        this.draggedElement = null;
+        this.touchOffset = { x: 0, y: 0 };
+        
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -140,16 +145,32 @@ class MultiplicationGame {
             optionElement.draggable = true;
             optionElement.dataset.value = option;
             
-            // 드래그 이벤트 설정
+            // 데스크톱 드래그 이벤트 설정
             optionElement.addEventListener('dragstart', this.handleDragStart.bind(this));
             optionElement.addEventListener('dragend', this.handleDragEnd.bind(this));
+            
+            // 모바일 터치 이벤트 설정
+            optionElement.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+            optionElement.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+            optionElement.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: false });
+            
+            // 클릭 이벤트 (터치 대체용)
+            optionElement.addEventListener('click', this.handleClick.bind(this));
             
             this.answerOptions.appendChild(optionElement);
         });
     }
     
     resetDropZone() {
-        this.dropZone.innerHTML = '<span class="drop-hint">정답을 여기에 드래그하세요! 👆</span>';
+        // 모바일 환경 감지
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+        
+        const hintText = isMobile ? 
+            '정답을 터치하거나 드래그하세요! 👆' : 
+            '정답을 여기에 드래그하세요! 👆';
+            
+        this.dropZone.innerHTML = `<span class="drop-hint">${hintText}</span>`;
         this.dropZone.classList.remove('has-answer');
         this.currentAnswer = null;
     }
@@ -218,6 +239,127 @@ class MultiplicationGame {
         setTimeout(() => {
             this.checkAnswer(droppedValue);
         }, 500);
+    }
+    
+    // 터치 이벤트 핸들러들
+    handleTouchStart(e) {
+        e.preventDefault();
+        this.isDragging = true;
+        this.draggedElement = e.target;
+        
+        const touch = e.touches[0];
+        const rect = e.target.getBoundingClientRect();
+        this.touchOffset.x = touch.clientX - rect.left;
+        this.touchOffset.y = touch.clientY - rect.top;
+        
+        // 드래그 시작 스타일
+        e.target.style.opacity = '0.8';
+        e.target.style.transform = 'scale(1.1) rotate(5deg)';
+        e.target.style.zIndex = '1000';
+        e.target.style.position = 'fixed';
+        e.target.style.pointerEvents = 'none';
+        
+        // 터치 좌표로 위치 설정
+        e.target.style.left = (touch.clientX - this.touchOffset.x) + 'px';
+        e.target.style.top = (touch.clientY - this.touchOffset.y) + 'px';
+    }
+    
+    handleTouchMove(e) {
+        if (!this.isDragging || !this.draggedElement) return;
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        
+        // 드래그되는 요소의 위치 업데이트
+        this.draggedElement.style.left = (touch.clientX - this.touchOffset.x) + 'px';
+        this.draggedElement.style.top = (touch.clientY - this.touchOffset.y) + 'px';
+        
+        // 드롭존과의 충돌 감지
+        const dropZoneRect = this.dropZone.getBoundingClientRect();
+        const isOverDropZone = (
+            touch.clientX >= dropZoneRect.left &&
+            touch.clientX <= dropZoneRect.right &&
+            touch.clientY >= dropZoneRect.top &&
+            touch.clientY <= dropZoneRect.bottom
+        );
+        
+        if (isOverDropZone) {
+            this.dropZone.classList.add('drag-over');
+        } else {
+            this.dropZone.classList.remove('drag-over');
+        }
+    }
+    
+    handleTouchEnd(e) {
+        if (!this.isDragging || !this.draggedElement) return;
+        e.preventDefault();
+        
+        const touch = e.changedTouches[0];
+        
+        // 드롭존과의 충돌 확인
+        const dropZoneRect = this.dropZone.getBoundingClientRect();
+        const isOverDropZone = (
+            touch.clientX >= dropZoneRect.left &&
+            touch.clientX <= dropZoneRect.right &&
+            touch.clientY >= dropZoneRect.top &&
+            touch.clientY <= dropZoneRect.bottom
+        );
+        
+        if (isOverDropZone) {
+            // 드롭 성공
+            const droppedValue = parseInt(this.draggedElement.dataset.value);
+            this.currentAnswer = droppedValue;
+            
+            // 드롭존 업데이트
+            this.dropZone.innerHTML = droppedValue;
+            this.dropZone.classList.add('has-answer');
+            this.dropZone.classList.remove('drag-over');
+            
+            // 정답 확인
+            setTimeout(() => {
+                this.checkAnswer(droppedValue);
+            }, 500);
+        }
+        
+        // 드래그 종료 - 원래 상태로 복원
+        this.resetDraggedElement();
+    }
+    
+    handleClick(e) {
+        // 모바일에서 간단한 클릭으로도 답안 선택 가능
+        if (this.currentAnswer !== null) return; // 이미 답안이 선택된 경우 무시
+        
+        const clickedValue = parseInt(e.target.dataset.value);
+        this.currentAnswer = clickedValue;
+        
+        // 드롭존 업데이트
+        this.dropZone.innerHTML = clickedValue;
+        this.dropZone.classList.add('has-answer');
+        
+        // 클릭된 옵션 강조
+        e.target.style.background = 'linear-gradient(45deg, #48bb78, #38a169)';
+        
+        // 정답 확인
+        setTimeout(() => {
+            this.checkAnswer(clickedValue);
+        }, 500);
+    }
+    
+    resetDraggedElement() {
+        if (this.draggedElement) {
+            // 스타일 초기화
+            this.draggedElement.style.opacity = '1';
+            this.draggedElement.style.transform = '';
+            this.draggedElement.style.zIndex = '';
+            this.draggedElement.style.position = '';
+            this.draggedElement.style.pointerEvents = '';
+            this.draggedElement.style.left = '';
+            this.draggedElement.style.top = '';
+        }
+        
+        this.isDragging = false;
+        this.draggedElement = null;
+        this.dropZone.classList.remove('drag-over');
     }
     
     checkAnswer(answer) {

@@ -271,6 +271,11 @@ body {
     box-shadow: 0 5px 15px rgba(237, 137, 54, 0.3);
     min-width: 80px;
     text-align: center;
+    touch-action: none; /* 터치 스크롤 방지 */
+    -webkit-touch-callout: none; /* iOS 롱프레스 메뉴 방지 */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .answer-option:hover {
