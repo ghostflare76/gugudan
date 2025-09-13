@@ -50,6 +50,8 @@ class MultiplicationGame {
         this.finalStars = document.getElementById('finalStars');
         this.accuracyRate = document.getElementById('accuracyRate');
         this.maxStreakDisplay = document.getElementById('maxStreak');
+        this.personalBestDisplay = document.getElementById('personalBest');
+        this.rankingTable = document.getElementById('rankingTable');
         
         // 사운드 요소들
         this.applauseSound = document.getElementById('applauseSound');
@@ -677,6 +679,36 @@ class MultiplicationGame {
         // 최고 연속 정답
         this.maxStreakDisplay.textContent = this.maxStreak;
         
+        // 개인 최고 점수 표시 (점수 저장 이전에 확인)
+        const personalBestBeforeSave = this.getPersonalBest(this.playerName);
+        
+        // 점수 저장
+        this.saveScore(this.playerName, this.currentScore, accuracy);
+        
+        // 랭킹 업데이트 및 표시
+        this.updateRanking(this.playerName, this.currentScore);
+        this.displayRanking();
+        
+        // 개인 최고 점수 표시
+        if (this.personalBestDisplay) {
+            if (personalBestBeforeSave !== null) {
+                // 이전 기록이 있는 경우
+                if (this.currentScore > personalBestBeforeSave) {
+                    // 신기록 달성
+                    this.personalBestDisplay.textContent = `${this.playerName}님 신기록! ${this.currentScore}점 (이전: ${personalBestBeforeSave}점)`;
+                    this.personalBestDisplay.style.color = '#e53e3e'; // 빨간색으로 강조
+                } else {
+                    // 이전 기록이 더 높음
+                    this.personalBestDisplay.textContent = `${this.playerName}님 최고 점수: ${personalBestBeforeSave}점 (현재: ${this.currentScore}점)`;
+                    this.personalBestDisplay.style.color = '#2d3748'; // 기본 색상
+                }
+            } else {
+                // 첫 기록
+                this.personalBestDisplay.textContent = `${this.playerName}님 첫 기록: ${this.currentScore}점`;
+                this.personalBestDisplay.style.color = '#38a169'; // 초록색으로 축하
+            }
+        }
+        
         // 최종 별점 계산
         this.updateFinalStarRating(accuracy);
         
@@ -733,6 +765,144 @@ class MultiplicationGame {
         // 별점 초기화
         const stars = this.starRating.querySelectorAll('.star');
         stars.forEach(star => star.classList.remove('active'));
+    }
+    
+    // localStorage 점수 저장 메서드들
+    saveScore(playerName, score, accuracy) {
+        try {
+            // 기존 점수 데이터 로드
+            const scores = this.getStoredScores();
+            
+            // 새 점수 데이터 생성
+            const newScore = {
+                playerName: playerName,
+                score: score,
+                accuracy: accuracy,
+                date: new Date().toISOString()
+            };
+            
+            // 점수 배열에 추가
+            scores.push(newScore);
+            
+            // localStorage에 저장
+            localStorage.setItem('gugudan-scores', JSON.stringify(scores));
+        } catch (error) {
+            console.log('점수 저장 중 오류:', error);
+            // localStorage 오류 시에도 게임은 계속 진행
+        }
+    }
+    
+    getStoredScores() {
+        try {
+            const storedData = localStorage.getItem('gugudan-scores');
+            if (storedData) {
+                return JSON.parse(storedData);
+            }
+        } catch (error) {
+            console.log('저장된 점수 로드 중 오류:', error);
+            // JSON.parse 오류 시 빈 배열로 초기화
+        }
+        return [];
+    }
+    
+    getPersonalBest(playerName) {
+        try {
+            const scores = this.getStoredScores();
+            const playerScores = scores.filter(score => score.playerName === playerName);
+            
+            if (playerScores.length > 0) {
+                return Math.max(...playerScores.map(score => score.score));
+            }
+        } catch (error) {
+            console.log('개인 최고 점수 조회 중 오류:', error);
+        }
+        return null;
+    }
+    
+    // 랭킹 관리 메서드들
+    updateRanking(playerName, score) {
+        try {
+            const ranking = this.getRanking();
+            const newEntry = {
+                name: playerName,
+                score: score,
+                date: new Date().toISOString()
+            };
+            
+            // 기존 랭킹에 새 항목 추가
+            ranking.push(newEntry);
+            
+            // 점수 기준 내림차순 정렬
+            ranking.sort((a, b) => b.score - a.score);
+            
+            // 최대 5명으로 제한 (최저 점수 제거)
+            if (ranking.length > 5) {
+                ranking.splice(5);
+            }
+            
+            // localStorage에 저장
+            localStorage.setItem('gugudan-ranking', JSON.stringify(ranking));
+        } catch (error) {
+            console.log('랭킹 업데이트 중 오류:', error);
+            // localStorage 오류 시에도 게임은 계속 진행
+        }
+    }
+    
+    getRanking() {
+        try {
+            const storedData = localStorage.getItem('gugudan-ranking');
+            if (storedData) {
+                return JSON.parse(storedData);
+            }
+        } catch (error) {
+            console.log('랭킹 데이터 로드 중 오류:', error);
+            // JSON.parse 오류 시 빈 배열로 초기화
+        }
+        return [];
+    }
+    
+    displayRanking() {
+        try {
+            const ranking = this.getRanking();
+            
+            if (!this.rankingTable) {
+                return; // DOM 요소가 없으면 종료
+            }
+            
+            if (ranking.length === 0) {
+                this.rankingTable.innerHTML = '<div class="ranking-item">아직 랭킹 데이터가 없습니다.</div>';
+                return;
+            }
+            
+            let rankingHTML = '';
+            ranking.forEach((entry, index) => {
+                const rank = index + 1;
+                const isCurrentPlayer = entry.name === this.playerName && entry.score === this.currentScore;
+                const currentPlayerClass = isCurrentPlayer ? ' current-player' : '';
+                
+                let rankIcon = '';
+                if (rank === 1) rankIcon = '🥇';
+                else if (rank === 2) rankIcon = '🥈';
+                else if (rank === 3) rankIcon = '🥉';
+                else rankIcon = `${rank}위`;
+                
+                rankingHTML += `
+                    <div class="ranking-item${currentPlayerClass}">
+                        <span class="ranking-rank rank-${rank}">${rankIcon}</span>
+                        <span class="ranking-name">${entry.name}</span>
+                        <span class="ranking-score">${entry.score}점</span>
+                    </div>
+                `;
+            });
+            
+            this.rankingTable.innerHTML = rankingHTML;
+        } catch (error) {
+            console.log('랭킹 표시 중 오류:', error);
+            // 오류 시 기본 메시지 표시
+            if (this.rankingTable) {
+                this.rankingTable.innerHTML = '<div class="ranking-item">랭킹을 불러올 수 없습니다.</div>';
+            }
+        }
     }
 }
 

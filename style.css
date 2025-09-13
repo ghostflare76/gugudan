@@ -524,6 +524,80 @@ body {
     color: #4a5568;
 }
 
+.personal-best {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #2d3748;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+}
+
+.ranking-section {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    border: 2px solid #e9ecef;
+}
+
+.ranking-title {
+    text-align: center;
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+}
+
+.ranking-table {
+    width: 100%;
+}
+
+.ranking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin: 5px 0;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+}
+
+.ranking-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.ranking-item.current-player {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border: 2px solid #f59e0b;
+    font-weight: bold;
+}
+
+.ranking-rank {
+    font-weight: bold;
+    font-size: 1.2em;
+    color: #6c757d;
+    min-width: 40px;
+}
+
+.ranking-rank.rank-1 { color: #ffd700; }
+.ranking-rank.rank-2 { color: #c0c0c0; }
+.ranking-rank.rank-3 { color: #cd7f32; }
+
+.ranking-name {
+    flex: 1;
+    margin: 0 10px;
+    font-weight: 500;
+}
+
+.ranking-score {
+    font-weight: bold;
+    color: #495057;
+}
+
 #playAgainButton {
     background: linear-gradient(45deg, #667eea, #764ba2);
     color: white;
