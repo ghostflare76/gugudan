@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구구단 마스터! 🌟</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 헤더 영역 -->
+        <header class="game-header">
+            <h1>🌟 구구단 마스터! 🌟</h1>
+            <div class="score-board">
+                <div class="score-display">
+                    <span class="score-label">점수:</span>
+                    <span class="score-value" id="currentScore">0</span>
+                </div>
+                <div class="star-rating" id="starRating">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 게임 시작 화면 -->
+        <div class="start-screen" id="startScreen">
+            <div class="welcome-message">
+                <h2>🎮 구구단 게임에 오신 것을 환영합니다! 🎮</h2>
+                <p>10문제를 풀고 최고 점수에 도전해보세요!</p>
+            </div>
+            <div class="name-input-section">
+                <label for="playerName">이름을 입력해주세요:</label>
+                <input type="text" id="playerName" placeholder="홍길동" maxlength="10">
+                <button id="startButton" onclick="startGame()">게임 시작! 🚀</button>
+            </div>
+        </div>
+
+        <!-- 게임 플레이 화면 -->
+        <div class="game-screen hidden" id="gameScreen">
+            <div class="game-info">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                    <span class="progress-text" id="progressText">문제 1 / 10</span>
+                </div>
+                <div class="timer-display">
+                    <span class="timer-label">⏱️ 남은 시간:</span>
+                    <span class="timer-value" id="timerValue">5</span>초
+                </div>
+            </div>
+
+            <div class="question-area">
+                <div class="question-display">
+                    <span class="question-text" id="questionText">2 × 3 = ?</span>
+                </div>
+                <div class="timer-bar">
+                    <div class="timer-fill" id="timerFill"></div>
+                </div>
+            </div>
+
+            <div class="answer-area">
+                <div class="answer-options" id="answerOptions">
+                    <!-- 드래그앤드롭 옵션들이 여기에 동적으로 생성됩니다 -->
+                </div>
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-hint">정답을 여기에 드래그하세요! 👆</span>
+                </div>
+            </div>
+
+            <!-- 피드백 효과 영역 -->
+            <div class="feedback-effects">
+                <div class="perfect-effect hidden" id="perfectEffect">
+                    <div class="perfect-text">PERFECT! 🎉</div>
+                    <div class="perfect-particles"></div>
+                </div>
+                <div class="streak-effect hidden" id="streakEffect">
+                    <div class="streak-text" id="streakText">2 연속 PERFECT! 🔥</div>
+                </div>
+                <div class="wrong-effect hidden" id="wrongEffect">
+                    <div class="wrong-text">다시 도전해보세요! 💪</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 게임 완료 화면 -->
+        <div class="result-screen hidden" id="resultScreen">
+            <div class="result-content">
+                <h2>🎊 게임 완료! 🎊</h2>
+                <div class="final-score">
+                    <div class="score-circle">
+                        <span class="final-score-value" id="finalScore">0</span>
+                        <span class="score-unit">점</span>
+                    </div>
+                </div>
+                <div class="final-stars" id="finalStars">
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                    <span class="star">⭐</span>
+                </div>
+                <div class="performance-stats" id="performanceStats">
+                    <div class="stat-item">
+                        <span class="stat-label">정답률:</span>
+                        <span class="stat-value" id="accuracyRate">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">최고 연속:</span>
+                        <span class="stat-value" id="maxStreak">0</span>
+                    </div>
+                </div>
+                <button id="playAgainButton" onclick="resetGame()">다시 하기! 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
