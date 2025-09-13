@@ -736,17 +736,29 @@ class MultiplicationGame {
     }
 }
 
-// 게임 인스턴스 생성
-const game = new MultiplicationGame();
-
-// 전역 함수들 (HTML에서 호출)
+// 전역 함수들 (HTML에서 호출) - 먼저 선언
 function startGame() {
-    game.startGame();
+    console.log('startGame 함수 호출됨');
+    try {
+        if (window.game) {
+            window.game.startGame();
+        } else {
+            console.error('게임 인스턴스가 아직 초기화되지 않았습니다');
+        }
+    } catch (error) {
+        console.error('게임 시작 오류:', error);
+        alert('게임 시작 중 오류가 발생했습니다: ' + error.message);
+    }
 }
 
 function resetGame() {
-    game.resetGame();
+    if (window.game) {
+        window.game.resetGame();
+    }
 }
+
+// 게임 인스턴스 생성 - 함수 선언 후에
+let game;
 
 // 키보드 이벤트 처리
 document.addEventListener('keypress', (e) => {
@@ -762,8 +774,15 @@ document.addEventListener('keypress', (e) => {
     }
 });
 
-// 페이지 로드 시 이름 입력 필드에 포커스
+// 페이지 로드 시 게임 초기화
 window.addEventListener('load', () => {
+    // 게임 인스턴스 생성
+    game = new MultiplicationGame();
+    window.game = game; // 전역 접근 가능하도록
+    
+    // 이름 입력 필드에 포커스
     const playerNameInput = document.getElementById('playerName');
     playerNameInput.focus();
+    
+    console.log('게임이 초기화되었습니다');
 });
