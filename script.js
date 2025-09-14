@@ -65,6 +65,9 @@ class MultiplicationGame {
         this.wrongSound.volume = 0.5;
         this.completionSound.volume = 0.8;
         
+        // 모바일 오디오 활성화 플래그
+        this.audioUnlocked = false;
+        
         // Web Audio API 컨텍스트 초기화
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -122,8 +125,9 @@ class MultiplicationGame {
             return;
         }
         
-        // 오디오 컨텍스트 활성화 (사용자 인터랙션 필요)
+        // 오디오 컨텍스트 및 모바일 오디오 활성화 (사용자 인터랙션 필요)
         this.resumeAudioContext();
+        this.unlockAudio();
         
         // 게임 상태 초기화
         this.currentScore = 0;
@@ -152,6 +156,43 @@ class MultiplicationGame {
             }).catch(error => {
                 console.log('오디오 컨텍스트 활성화 실패:', error);
             });
+        }
+    }
+    
+    // 모바일에서 오디오 활성화 (사용자 상호작용 필요)
+    unlockAudio() {
+        if (this.audioUnlocked) return;
+        
+        try {
+            // 모든 오디오 요소를 한 번씩 재생하여 활성화
+            const audioElements = [this.applauseSound, this.wrongSound, this.completionSound];
+            
+            audioElements.forEach(audio => {
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.volume = 0; // 무음으로 재생
+                    const playPromise = audio.play();
+                    
+                    if (playPromise) {
+                        playPromise.then(() => {
+                            audio.pause();
+                            audio.currentTime = 0;
+                            // 원래 볼륨으로 복원
+                            if (audio === this.applauseSound) audio.volume = 0.7;
+                            else if (audio === this.streakSound) audio.volume = 0.8;
+                            else if (audio === this.wrongSound) audio.volume = 0.5;
+                            else if (audio === this.completionSound) audio.volume = 0.8;
+                        }).catch(error => {
+                            console.log('오디오 활성화 실패:', error);
+                        });
+                    }
+                }
+            });
+            
+            this.audioUnlocked = true;
+            console.log('모바일 오디오 활성화 완료');
+        } catch (error) {
+            console.log('오디오 활성화 중 오류:', error);
         }
     }
     
@@ -269,6 +310,9 @@ class MultiplicationGame {
         e.preventDefault();
         this.dropZone.classList.remove('drag-over');
         
+        // 오디오 활성화 (사용자 상호작용)
+        this.unlockAudio();
+        
         const droppedValue = parseInt(e.dataTransfer.getData('text/plain'));
         this.currentAnswer = droppedValue;
         
@@ -335,6 +379,9 @@ class MultiplicationGame {
         if (!this.isDragging || !this.draggedElement) return;
         e.preventDefault();
         
+        // 오디오 활성화 (사용자 상호작용)
+        this.unlockAudio();
+        
         const touch = e.changedTouches[0];
         
         // 드롭존과의 충돌 확인
@@ -367,6 +414,9 @@ class MultiplicationGame {
     }
     
     handleClick(e) {
+        // 오디오 활성화 (사용자 상호작용)
+        this.unlockAudio();
+        
         // 모바일에서 간단한 클릭으로도 답안 선택 가능
         if (this.currentAnswer !== null) return; // 이미 답안이 선택된 경우 무시
         
@@ -506,10 +556,15 @@ class MultiplicationGame {
     playApplauseSound() {
         // HTML 오디오 파일만 사용
         try {
-            this.applauseSound.currentTime = 0;
-            this.applauseSound.play().catch(error => {
-                console.log('박수 소리 재생 실패:', error);
-            });
+            if (this.applauseSound && this.applauseSound.readyState >= 2) {
+                this.applauseSound.currentTime = 0;
+                const playPromise = this.applauseSound.play();
+                if (playPromise) {
+                    playPromise.catch(error => {
+                        console.log('박수 소리 재생 실패:', error);
+                    });
+                }
+            }
         } catch (error) {
             console.log('박수 소리 재생 오류:', error);
         }
@@ -535,10 +590,15 @@ class MultiplicationGame {
     playWrongSound() {
         // HTML 오디오 파일만 사용
         try {
-            this.wrongSound.currentTime = 0;
-            this.wrongSound.play().catch(error => {
-                console.log('오답 효과음 재생 실패:', error);
-            });
+            if (this.wrongSound && this.wrongSound.readyState >= 2) {
+                this.wrongSound.currentTime = 0;
+                const playPromise = this.wrongSound.play();
+                if (playPromise) {
+                    playPromise.catch(error => {
+                        console.log('오답 효과음 재생 실패:', error);
+                    });
+                }
+            }
         } catch (error) {
             console.log('오답 효과음 재생 오류:', error);
         }
@@ -547,10 +607,15 @@ class MultiplicationGame {
     playCompletionSound() {
         // HTML 오디오 파일만 사용
         try {
-            this.completionSound.currentTime = 0;
-            this.completionSound.play().catch(error => {
-                console.log('완료 효과음 재생 실패:', error);
-            });
+            if (this.completionSound && this.completionSound.readyState >= 2) {
+                this.completionSound.currentTime = 0;
+                const playPromise = this.completionSound.play();
+                if (playPromise) {
+                    playPromise.catch(error => {
+                        console.log('완료 효과음 재생 실패:', error);
+                    });
+                }
+            }
         } catch (error) {
             console.log('완료 효과음 재생 오류:', error);
         }
