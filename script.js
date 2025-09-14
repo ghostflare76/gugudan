@@ -14,10 +14,18 @@ class MultiplicationGame {
         this.questions = [];
         this.currentQuestionIndex = 0;
         
-        // 터치 드래그 상태 관리
+        // 터치 드래그 상태 관리 (성능 최적화)
         this.isDragging = false;
         this.draggedElement = null;
         this.touchOffset = { x: 0, y: 0 };
+
+        // 성능 최적화를 위한 변수들
+        this.dropZoneRect = null;
+        this.lastUpdateTime = 0;
+        this.animationFrame = null;
+
+        // 성능 모니터링 (개발용)
+        this.touchPerformanceLog = false; // 디버깅 시 true로 설정
         
         this.initializeElements();
         this.setupEventListeners();
@@ -331,86 +339,112 @@ class MultiplicationGame {
         e.preventDefault();
         this.isDragging = true;
         this.draggedElement = e.target;
-        
+
         const touch = e.touches[0];
         const rect = e.target.getBoundingClientRect();
         this.touchOffset.x = touch.clientX - rect.left;
         this.touchOffset.y = touch.clientY - rect.top;
-        
-        // 드래그 시작 스타일
-        e.target.style.opacity = '0.8';
-        e.target.style.transform = 'scale(1.1) rotate(5deg)';
-        e.target.style.zIndex = '1000';
-        e.target.style.position = 'fixed';
-        e.target.style.pointerEvents = 'none';
-        
-        // 터치 좌표로 위치 설정
-        e.target.style.left = (touch.clientX - this.touchOffset.x) + 'px';
-        e.target.style.top = (touch.clientY - this.touchOffset.y) + 'px';
+
+        // 드롭존 위치를 미리 캐시 (성능 최적화)
+        this.dropZoneRect = this.dropZone.getBoundingClientRect();
+
+        // CSS 변환으로 성능 최적화
+        const element = e.target;
+        element.style.cssText = `
+            opacity: 0.8;
+            transform: scale(1.1) rotate(5deg) translate3d(0, 0, 0);
+            z-index: 1000;
+            position: fixed;
+            pointer-events: none;
+            left: ${touch.clientX - this.touchOffset.x}px;
+            top: ${touch.clientY - this.touchOffset.y}px;
+            will-change: transform;
+        `;
     }
     
     handleTouchMove(e) {
         if (!this.isDragging || !this.draggedElement) return;
         e.preventDefault();
-        
+
+        // 프레임 제한으로 성능 최적화 (60fps)
+        const now = performance.now();
+        if (now - this.lastUpdateTime < 16) return; // 16ms = 60fps
+        this.lastUpdateTime = now;
+
         const touch = e.touches[0];
-        
-        // 드래그되는 요소의 위치 업데이트
-        this.draggedElement.style.left = (touch.clientX - this.touchOffset.x) + 'px';
-        this.draggedElement.style.top = (touch.clientY - this.touchOffset.y) + 'px';
-        
-        // 드롭존과의 충돌 감지
-        const dropZoneRect = this.dropZone.getBoundingClientRect();
-        const isOverDropZone = (
-            touch.clientX >= dropZoneRect.left &&
-            touch.clientX <= dropZoneRect.right &&
-            touch.clientY >= dropZoneRect.top &&
-            touch.clientY <= dropZoneRect.bottom
-        );
-        
-        if (isOverDropZone) {
-            this.dropZone.classList.add('drag-over');
-        } else {
-            this.dropZone.classList.remove('drag-over');
+
+        // RequestAnimationFrame으로 부드러운 애니메이션
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
         }
+
+        this.animationFrame = requestAnimationFrame(() => {
+            // 위치 업데이트 (transform 사용으로 성능 최적화)
+            const x = touch.clientX - this.touchOffset.x;
+            const y = touch.clientY - this.touchOffset.y;
+            this.draggedElement.style.transform = `scale(1.1) rotate(5deg) translate3d(${x - parseFloat(this.draggedElement.style.left || 0)}px, ${y - parseFloat(this.draggedElement.style.top || 0)}px, 0)`;
+
+            // 캐시된 드롭존 rect 사용 (성능 최적화)
+            const isOverDropZone = (
+                touch.clientX >= this.dropZoneRect.left &&
+                touch.clientX <= this.dropZoneRect.right &&
+                touch.clientY >= this.dropZoneRect.top &&
+                touch.clientY <= this.dropZoneRect.bottom
+            );
+
+            // 상태 변화가 있을 때만 DOM 조작
+            if (isOverDropZone && !this.dropZone.classList.contains('drag-over')) {
+                this.dropZone.classList.add('drag-over');
+            } else if (!isOverDropZone && this.dropZone.classList.contains('drag-over')) {
+                this.dropZone.classList.remove('drag-over');
+            }
+        });
     }
     
     handleTouchEnd(e) {
         if (!this.isDragging || !this.draggedElement) return;
         e.preventDefault();
-        
+
+        // 애니메이션 프레임 정리
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+
         // 오디오 활성화 (사용자 상호작용)
         this.unlockAudio();
-        
+
         const touch = e.changedTouches[0];
-        
-        // 드롭존과의 충돌 확인
-        const dropZoneRect = this.dropZone.getBoundingClientRect();
+
+        // 캐시된 드롭존 rect 사용
         const isOverDropZone = (
-            touch.clientX >= dropZoneRect.left &&
-            touch.clientX <= dropZoneRect.right &&
-            touch.clientY >= dropZoneRect.top &&
-            touch.clientY <= dropZoneRect.bottom
+            touch.clientX >= this.dropZoneRect.left &&
+            touch.clientX <= this.dropZoneRect.right &&
+            touch.clientY >= this.dropZoneRect.top &&
+            touch.clientY <= this.dropZoneRect.bottom
         );
-        
+
         if (isOverDropZone) {
             // 드롭 성공
             const droppedValue = parseInt(this.draggedElement.dataset.value);
             this.currentAnswer = droppedValue;
-            
+
             // 드롭존 업데이트
             this.dropZone.innerHTML = droppedValue;
             this.dropZone.classList.add('has-answer');
             this.dropZone.classList.remove('drag-over');
-            
-            // 정답 확인
+
+            // 정답 확인 (지연 시간 단축)
             setTimeout(() => {
                 this.checkAnswer(droppedValue);
-            }, 500);
+            }, 200);
         }
-        
+
         // 드래그 종료 - 원래 상태로 복원
         this.resetDraggedElement();
+
+        // 캐시 정리
+        this.dropZoneRect = null;
     }
     
     handleClick(e) {
@@ -438,19 +472,22 @@ class MultiplicationGame {
     
     resetDraggedElement() {
         if (this.draggedElement) {
-            // 스타일 초기화
-            this.draggedElement.style.opacity = '1';
-            this.draggedElement.style.transform = '';
-            this.draggedElement.style.zIndex = '';
-            this.draggedElement.style.position = '';
-            this.draggedElement.style.pointerEvents = '';
-            this.draggedElement.style.left = '';
-            this.draggedElement.style.top = '';
+            // CSS 속성 일괄 초기화 (성능 최적화)
+            this.draggedElement.style.cssText = '';
+            this.draggedElement.style.willChange = 'auto';
         }
-        
+
+        // 애니메이션 프레임 정리
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+
         this.isDragging = false;
         this.draggedElement = null;
         this.dropZone.classList.remove('drag-over');
+        this.dropZoneRect = null;
+        this.lastUpdateTime = 0;
     }
     
     checkAnswer(answer) {
