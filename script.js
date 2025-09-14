@@ -502,18 +502,21 @@ class MultiplicationGame {
     
     // 사운드 재생 메서드들
     playApplauseSound() {
-        // Web Audio API로 박수 소리 효과 생성
-        if (this.audioContext) {
-            this.createApplauseEffect();
-        } else {
-            // 폴백: HTML 오디오 사용
-            try {
-                this.applauseSound.currentTime = 0;
-                this.applauseSound.play().catch(error => {
-                    console.log('박수 소리 재생 실패:', error);
-                });
-            } catch (error) {
-                console.log('박수 소리 재생 오류:', error);
+        // HTML 오디오 파일 우선 사용
+        try {
+            this.applauseSound.currentTime = 0;
+            this.applauseSound.play().catch(error => {
+                console.log('박수 소리 재생 실패:', error);
+                // 폴백: Web Audio API로 박수 소리 효과 생성
+                if (this.audioContext) {
+                    this.createApplauseEffect();
+                }
+            });
+        } catch (error) {
+            console.log('박수 소리 재생 오류:', error);
+            // 폴백: Web Audio API로 박수 소리 효과 생성
+            if (this.audioContext) {
+                this.createApplauseEffect();
             }
         }
     }
@@ -536,18 +539,21 @@ class MultiplicationGame {
     }
     
     playWrongSound() {
-        // Web Audio API로 오답 효과음 생성
-        if (this.audioContext) {
-            this.createWrongEffect();
-        } else {
-            // 폴백: HTML 오디오 사용
-            try {
-                this.wrongSound.currentTime = 0;
-                this.wrongSound.play().catch(error => {
-                    console.log('오답 효과음 재생 실패:', error);
-                });
-            } catch (error) {
-                console.log('오답 효과음 재생 오류:', error);
+        // HTML 오디오 파일 우선 사용
+        try {
+            this.wrongSound.currentTime = 0;
+            this.wrongSound.play().catch(error => {
+                console.log('오답 효과음 재생 실패:', error);
+                // 폴백: Web Audio API로 오답 효과음 생성
+                if (this.audioContext) {
+                    this.createWrongEffect();
+                }
+            });
+        } catch (error) {
+            console.log('오답 효과음 재생 오류:', error);
+            // 폴백: Web Audio API로 오답 효과음 생성
+            if (this.audioContext) {
+                this.createWrongEffect();
             }
         }
     }
