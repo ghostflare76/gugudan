@@ -57,11 +57,13 @@ class MultiplicationGame {
         this.applauseSound = document.getElementById('applauseSound');
         this.streakSound = document.getElementById('streakSound');
         this.wrongSound = document.getElementById('wrongSound');
+        this.completionSound = document.getElementById('completionSound');
         
         // 사운드 볼륨 설정
         this.applauseSound.volume = 0.7;
         this.streakSound.volume = 0.8;
         this.wrongSound.volume = 0.5;
+        this.completionSound.volume = 0.8;
         
         // Web Audio API 컨텍스트 초기화
         try {
@@ -558,6 +560,18 @@ class MultiplicationGame {
         }
     }
     
+    playCompletionSound() {
+        // HTML 오디오 파일 재생
+        try {
+            this.completionSound.currentTime = 0;
+            this.completionSound.play().catch(error => {
+                console.log('완료 효과음 재생 실패:', error);
+            });
+        } catch (error) {
+            console.log('완료 효과음 재생 오류:', error);
+        }
+    }
+    
     // Web Audio API를 사용한 사운드 효과 생성
     createApplauseEffect() {
         if (!this.audioContext) return;
@@ -669,6 +683,9 @@ class MultiplicationGame {
         this.gameScreen.classList.add('hidden');
         this.resultScreen.classList.remove('hidden');
         this.resultScreen.classList.add('fade-in');
+        
+        // 게임 완료 사운드 재생
+        this.playCompletionSound();
         
         // 최종 결과 표시
         this.showFinalResults();
